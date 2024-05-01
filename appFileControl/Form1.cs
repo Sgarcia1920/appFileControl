@@ -1,0 +1,142 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using System.IO;
+
+namespace appFileControl
+{
+	public partial class Form1 : Form
+	{
+		public Form1()
+		{
+			InitializeComponent();
+		}
+
+		private void btnSelectFolder_Click(object sender, EventArgs e)
+		{
+			//Open a Foler browser dialog to select the folder
+			FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
+			folderBrowserDialog.Description = "Select the folder";
+			folderBrowserDialog.ShowNewFolderButton = false;
+			folderBrowserDialog.RootFolder = Environment.SpecialFolder.Desktop;
+			//if the user select a folder, set the path to the textbox
+			if (folderBrowserDialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			txtFolder.Text = folderBrowserDialog.SelectedPath;
+
+		}
+
+		private void btnProcessFolder_Click(object sender, EventArgs e)
+		{
+			string[] filesInFolder = Directory.GetFiles(txtFolder.Text);
+			//show in txtProcessFileNumber the number of items in the filesInFolder Array
+			txtProcessFileNumber.Text = filesInFolder.Length + " file(s) Processed";
+			foreach (string file in filesInFolder)
+			{
+				//Get the file name
+				string fileName = Path.GetFileName(file);
+				//Get the file extension
+				string fileExtension = Path.GetExtension(file);
+				//sort the file by extension using a switch
+				switch (fileExtension)
+				{
+					case ".txt":
+					case ".xlsx":
+					case ".docx":
+					case ".pptx":
+						//Move the file to the folder to a docs
+						if (!Directory.Exists(txtFolder.Text + "\\Docs"))
+						{
+							Directory.CreateDirectory(txtFolder.Text + "\\Docs");
+						}
+						File.Move(file, txtFolder.Text + "\\Docs\\" + fileName);
+						break;
+					case ".jpg":
+					case ".jpeg":
+					case ".png":
+						//Move the file to the  folder if the folder exist else create the folder
+						if (!Directory.Exists(txtFolder.Text + "\\Pics"))
+						{
+							Directory.CreateDirectory(txtFolder.Text + "\\Pics");
+						}
+						File.Move(file, txtFolder.Text + "\\Pics\\" + fileName);
+						break;
+
+					default:
+						//Move the file to the other folder
+						if (!Directory.Exists(txtFolder.Text + "\\other"))
+						{
+							Directory.CreateDirectory(txtFolder.Text + "\\other");
+						}
+						File.Move(file, txtFolder.Text + "\\other\\" + fileName);
+						break;
+				}
+			}
+		}
+
+		private void btnOpenTextFile_Click(object sender, EventArgs e)
+		{
+			//Open a file dialog to select the file
+			OpenFileDialog dialog = new OpenFileDialog();
+			dialog.Filter = "Text Files|*.txt";
+			dialog.Title = "Select a Text File";
+			//if the user select a file, set the path to the textbox
+			if (dialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			//Read the file and show the content in the txtContent textbox
+			txtContent.Text = File.ReadAllText(dialog.FileName);
+
+		}
+
+		private void btnSaveTextFile_Click(object sender, EventArgs e)
+		{
+			//save the content of the txtContent textbox to a new file
+			SaveFileDialog dialog = new SaveFileDialog();
+			dialog.Filter = "Text Files|*.txt";
+			dialog.Title = "Save the Text File";
+			//if the user select a file, set the path to the textbox
+			if (dialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			//Write the content of the txtContent textbox to the file
+			File.WriteAllText(dialog.FileName, txtContent.Text);
+
+		}
+
+		private void btnSave_document_Click(object sender, EventArgs e)
+		{
+
+			string text = txtContent.Text;
+			SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+			saveFileDialog1.Filter = "Word Document (*.docx)|*.docx";
+			saveFileDialog1.ShowDialog();
+
+
+			if (saveFileDialog1.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			
+			using ( WordprocessingDocument wordDocument =
+					WordprocessingDocument.Create(saveFileDialog1.FileName, DocumentFormat.OpenXml.WordprocessingDocumentType.Document))
+				{
+					
+					MainDocumentPart mainPart = wordDocument.AddMainDocumentPart();
+					mainPart.Document = new Document();
+					Body body = new Body();
+					mainPart.Document.Append(body);
+					Paragraph paragraph = body.AppendChild(new Paragraph());
+					Run run = paragraph.AppendChild(new Run());
+					run.AppendChild(new Text(text));
+				}
+
+				MessageBox.Show("Document Saved succesfully");
+			
+
+		}
+	}
+}
